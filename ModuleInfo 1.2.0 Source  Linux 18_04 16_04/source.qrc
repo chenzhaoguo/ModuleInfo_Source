@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/close.png</file>
+        <file>images/disconnect.png</file>
+        <file>images/min.png</file>
+        <file>images/warning_green.png</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-Black.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-BlackItalic.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-Bold.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-BoldItalic.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-Italic.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-Light.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-LightItalic.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-Medium.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-MediumItalic.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-Regular.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-Thin.otf</file>
+        <file>Azo Sans/Rui Abreu - AzoSans-ThinItalic.otf</file>
+        <file>ico.ico</file>
+    </qresource>
+</RCC>

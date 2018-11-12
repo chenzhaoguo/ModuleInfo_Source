@@ -162,17 +162,20 @@ void MainWindow::CameraInit(){
         }
     }
 }
-
 //临时存放
-imrIMUData imu_temp;       //imu 主页显示 变量
-QList<string> imu_box;     //imu 传输容器
-QList<string> imu_cache;   //imu 缓存容器
-bool state = true;         //采集按钮状态开关
-bool collect_state = false;//数据采集   开关
+imrIMUData imu_temp;                              //imu 主页显示 变量
+QList<string> imu_box;                            //imu 传输容器
+QList<string> imu_cache;                          //imu 缓存容器
+bool state = true;                                //采集按钮状态开关
+bool collect_state = false;                       //数据采集   开关
+//--------------采集开关 imu | camera-----------------------------
+bool m_imu_collet = false;
+bool m_camera_collect = false;
+//--------------------------------------------------------------
 QMutex m_mutex;            //imu 存储锁
 //获取待采集的数据集合
 void MainWindow::HMDDataCollect(imrIMUData*data){
-    if(collect_state){
+    if(collect_state && m_imu_collet){
         //        char  imu_one[200];
         //        long long time_stamp = basetime + data->_timeStamp * 1000000;
         //        sprintf(imu_one,"%lld,%f,%f,%f,%f,%f,%f",time_stamp,
@@ -208,22 +211,22 @@ void MainWindow::HMDDataCollect(imrIMUData*data){
         imu_temp._gyr[i] = data->_gyr[i];
     }
 }
-imrCameraData camera_temp;
-imrCameraData camera_left;
-imrCameraData camera_right;
+imrCameraData camera_temp;                         //camera 双目显示
+imrCameraData camera_left;                         //camera LEFT
+imrCameraData camera_right;                        //camera RIGHT
 
-int group = 0;
-QMap<int,QList<imrCameraData> > camera_box_left;  //camera 传输容器
-QMap<int,QList<imrCameraData> > camera_box_right;  //camera 传输容器
+QMap<int,QList<imrCameraData> > camera_box_left;   //camera 传输容器 LEFT
+QMap<int,QList<imrCameraData> > camera_box_right;  //camera 传输容器 RIGHT
 
-QQueue<imrCameraData> camera_cache_left;           //camera 缓存容器
-QQueue<imrCameraData> camera_cache_right;           //camera 缓存容器
-QMutex m_c_mutex;          //camera 存储锁
-QMutex m_d_mutex;          //camera 存储锁
-imrCameraData temp_now;
+QQueue<imrCameraData> camera_cache_left;           //camera 缓存容器 LEFT
+QQueue<imrCameraData> camera_cache_right;          //camera 缓存容器 RIGHT
+
+bool write_end = false;                            //等待写入状态 camera 数据 时间戳
+int  now_group = 0;                                //当前写入组 camera
+int  group = 0;                                    //实时写入组 camera
 //获取待采集的相机数据集合
 void MainWindow::HMDDataCollectCamera(imrCameraData *camera_data){
-    if(collect_state){
+    if(collect_state && m_camera_collect){
         unsigned char* temp_left =  new unsigned char[camera_data->_size];
         unsigned char* temp_right =  new unsigned char[camera_data->_size];
 
@@ -260,11 +263,9 @@ void MainWindow::HMDDataCollectCamera(imrCameraData *camera_data){
 void MainWindow::HMDInOutInfo(bool in_out){
     hmd_in_out = in_out;
 }
-bool write_end = false;
-int  now_group = 0;
 //发送回调的相机信息
 void MainWindow::showTimelimit_camera(){
-    if(collect_state){
+    if(collect_state && m_camera_collect){
         if(group > now_group){
             emit sig_camera_data_post_left(camera_box_left.value(now_group));
 
@@ -273,28 +274,27 @@ void MainWindow::showTimelimit_camera(){
             emit sig_camera_data_post_right(camera_box_right.value(now_group));
 
             emit sig_camera_imu_post_right(camera_box_right.value(now_group)[0]._timeStamp);
-            //            camera_box_left.remove(now_group);
-            //            camera_box_right.remove(now_group);
             ++now_group;
         }
     }else{
-        if(group != now_group){
-            //emit sig_camera_data_post_left(camera_box_left.value(now_group));
-            //emit sig_camera_imu_post_left(camera_box_left.value(now_group)[0]._timeStamp);
-            //emit sig_camera_data_post_right(camera_box_right.value(now_group));
-            //emit sig_camera_imu_post_right(camera_box_right.value(now_group)[0]._timeStamp);
-            //++now_group;
-        }
-        else if(group == now_group && group >0){
+        if(group == now_group && group >0){
+            if(m_imu_collet && m_camera_collect){
+                m_hmd_about->setCollectState(state,"");
+                m_camera_data->setCollectStateCamera(state,"");
+                m_camera_data_right->setCollectStateCamera(state,"");
 
-            m_hmd_about->setCollectState(state,"");
-            m_camera_data->setCollectStateCamera(state,"");
-            m_camera_data_right->setCollectStateCamera(state,"");
+                if(imu_box.size() > 0)
+                    imu_box.clear();
+                now_group = 0;
+                group = 0;
+            }
+            if(m_camera_collect){
+                m_camera_data->setCollectStateCamera(state,"");
+                m_camera_data_right->setCollectStateCamera(state,"");
 
-            if(imu_box.size() > 0)
-                imu_box.clear();
-            now_group = 0;
-            group = 0;
+                now_group = 0;
+                group = 0;
+            }
         }
     }
 }
@@ -304,7 +304,7 @@ void MainWindow::slot_save_isok(){
 //发送imu数据
 void MainWindow::showTimelimit_imu(){
     //--------------------缓存版本---------------------
-    if(collect_state){
+    if(collect_state && m_imu_collet){
         if(imu_box.size() == 2000)
             emit sig_imu_data_post(imu_box);
         if(imu_box.size() >0)
@@ -469,46 +469,68 @@ void MainWindow::on_module_info_close_clicked()
 }
 //开始采集 imu_camera 数据
 bool newPath = false;//用以判断是否自定文件存储地址
+QString open_c = QString::fromLocal8Bit("font:13px '微软雅黑';color:red");    //未选择 存储模式 复选框 变红 警告
+QString close_c = QString::fromLocal8Bit("font:13px '微软雅黑';color:white"); //选择后 回复默认
 void MainWindow::on_collect_start_clicked()
 {
     current_date_time = QDateTime::currentDateTime();
-    if(state){
-        collect_state = true;
-        m_work_type = 1;
-        m_work_state->start(500);
-        ui->collect_start->setText(QString::fromLocal8Bit("关闭采集"));
+    if(m_camera_collect || m_imu_collet){
+        ui->imu_data->setStyleSheet(close_c);
+        ui->camera_data->setStyleSheet(close_c);
+        if(state){
+            collect_state = true;
+            m_work_type = 1;
+            m_work_state->start(500);
+            ui->collect_start->setText(QString::fromLocal8Bit("关闭采集"));
 
-        QString time = QDateTime::currentDateTime().toString(QString::fromLocal8Bit("yyyyMMdd hhmmss.zzz"));
-        if(!newPath){
-            //获取当前时间  设置文件夹日期
-            current_date_time = QDateTime::currentDateTime();
-            current_date_collect = current_date_time.toString(QString::fromLocal8Bit("yyyy-MM-dd_hh_mm_")) + QString::fromLocal8Bit("imu_camera");
-            //设置文件存放地址
-            m_file_save_path = QCoreApplication::applicationDirPath() + "/" + current_date_collect;
-            ui->hmd_data_path->setFocusPolicy(Qt::NoFocus);//焦点不可选
-            ui->hmd_data_path->setText(m_file_save_path);
+            QString time = QDateTime::currentDateTime().toString(QString::fromLocal8Bit("yyyyMMdd hhmmss.zzz"));
+            if(!newPath){
+                //获取当前时间  设置文件夹日期
+                current_date_time = QDateTime::currentDateTime();
+                current_date_collect = current_date_time.toString(QString::fromLocal8Bit("yyyy-MM-dd_hh_mm_")) + QString::fromLocal8Bit("imu_camera");
+                //设置文件存放地址
+                m_file_save_path = QCoreApplication::applicationDirPath() + "/" + current_date_collect;
+                ui->hmd_data_path->setFocusPolicy(Qt::NoFocus);//焦点不可选
+                ui->hmd_data_path->setText(m_file_save_path);
 
-            m_hmd_about->setFileSavePath(m_file_save_path);
-            m_camera_data->setFileSavePath(m_file_save_path);
-            m_camera_data_right->setFileSavePath(m_file_save_path);
+                m_hmd_about->setFileSavePath(m_file_save_path);
+                m_camera_data->setFileSavePath(m_file_save_path);
+                m_camera_data_right->setFileSavePath(m_file_save_path);
+            }
+            if(m_imu_collet){
+                m_hmd_about->setCollectState(state,time);
+            }
+            if(m_camera_collect){
+                m_camera_data->OpenFile();
+                m_camera_data_right->OpenFile();
+                m_camera_data->setCollectStateCamera(state,time);
+                m_camera_data_right->setCollectStateCamera(state,time);
+            }
+            state = false;
+            ui->imu_data->setEnabled(false);
+            ui->camera_data->setEnabled(false);
         }else{
+            state = true;
+            collect_state = false;
+            m_work_type = -1;
+            ui->collect_start->setStyleSheet(m_common + m_hover + m_pressed);
+            ui->collect_start->setText(QString::fromLocal8Bit("开始采集"));
 
+            if(m_camera_collect){
+                m_camera_data->getNowDataNum(now_group);
+                m_camera_data_right->getNowDataNum(now_group);
+            }
+            if(m_imu_collet){
+                m_hmd_about->setCollectState(state,"");
+                if(imu_box.size() > 0)
+                    imu_box.clear();
+            }
+            ui->imu_data->setEnabled(true);
+            ui->camera_data->setEnabled(true);
         }
-        m_camera_data->OpenFile();
-        m_camera_data_right->OpenFile();
-
-        m_hmd_about->setCollectState(state,time);
-        m_camera_data->setCollectStateCamera(state,time);
-        m_camera_data_right->setCollectStateCamera(state,time);
-        state = false;
     }else{
-        state = true;
-        collect_state = false;
-        m_work_type = -1;
-        ui->collect_start->setStyleSheet(m_common + m_hover + m_pressed);
-        ui->collect_start->setText(QString::fromLocal8Bit("开始采集"));
-        m_camera_data->getNowDataNum(now_group);
-        m_camera_data_right->getNowDataNum(now_group);
+        ui->imu_data->setStyleSheet(open_c);
+        ui->camera_data->setStyleSheet(open_c);
     }
 }
 //设置 路径并自动适用
@@ -531,13 +553,13 @@ void MainWindow::on_hmd_data_path_set_clicked()
         m_hmd_about->setFileSavePath(m_file_save_path + "/" + current_date_collect);
         m_camera_data->setFileSavePath(m_file_save_path + "/" + current_date_collect);
         m_camera_data_right->setFileSavePath(m_file_save_path + "/" + current_date_collect);
-        ui->hmd_data_path->setText(m_file_save_path + current_date_collect);
+        ui->hmd_data_path->setText(m_file_save_path + "/" + current_date_collect);
         return;
     }
     m_hmd_about->setFileSavePath(m_file_save_path + "/" + current_date_collect);
     m_camera_data->setFileSavePath(m_file_save_path + "/" + current_date_collect);
     m_camera_data_right->setFileSavePath(m_file_save_path + "/" + current_date_collect);
-    ui->hmd_data_path->setText(m_file_save_path + current_date_collect);
+    ui->hmd_data_path->setText(m_file_save_path + "/" + current_date_collect);
     newPath = true;
 }
 MainWindow::~MainWindow()
@@ -619,4 +641,26 @@ void MainWindow::on_test_area_top_clicked()
     }else{
         AnimationControl(ui->hmd_imu_tips_box,300,5,5,-290,5,290,250,3);
     }
+}
+//IMU采集开关
+void MainWindow::on_imu_data_stateChanged(int state)
+{
+    if(state == 2){
+        m_imu_collet = true;
+        ui->imu_data->setStyleSheet(close_c);
+        ui->camera_data->setStyleSheet(close_c);
+    }
+    else
+        m_imu_collet = false;
+}
+//相机采集开关
+void MainWindow::on_camera_data_stateChanged(int state)
+{
+    if(state == 2){
+        m_camera_collect = true;
+        ui->imu_data->setStyleSheet(close_c);
+        ui->camera_data->setStyleSheet(close_c);
+    }
+    else
+        m_camera_collect = false;
 }

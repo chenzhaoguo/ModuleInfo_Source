@@ -83,7 +83,6 @@ void HMDAbout::slot_setIMUData(QList<string> data){
         for(int i = 0;i<data.size();++i){
             QString time = QString::fromStdString(data[i]).split(' ')[0];
             double error =  time.toDouble()- imu_time_temp;
-            qDebug()<<error;
             if(error > 2){
                 QString path = imu_camera_file_path + QString::fromLocal8Bit("/IMU 误差/");
                 QDir dir;

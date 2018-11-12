@@ -19,7 +19,7 @@ CONFIG += c++11
 DEFINES += QT_DEPRECATED_WARNINGS
 
 RC_ICONS = ico.ico
-
+UI_DIR=./
 
 
 INCLUDEPATH += \home\indemind\ModuleInfo\eigen3.31

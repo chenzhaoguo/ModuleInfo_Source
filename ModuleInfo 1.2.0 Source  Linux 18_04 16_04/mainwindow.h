@@ -78,6 +78,10 @@ private slots:
     void on_test_area_clicked();                                     //测试区域显示
     void on_imu_collect_clicked();                                   //测试区IMU数据以及图像数据采集 (误差)
     //------------------------------------------------------------------------------------------------
+    void on_imu_data_stateChanged(int state);
+
+    void on_camera_data_stateChanged(int state);
+
 signals:
     void sig_imu_data_post(QList<string>);                           //头显 imu数据获取
     void sig_camera_data_post_left(QList<imrCameraData>);            //头显 图像数据获取

@@ -48,7 +48,7 @@ color:#39F354;
 </string>
      </property>
      <property name="text">
-      <string>INDEMIDE  MODULE-INFO COLLECT 1.2.0</string>
+      <string>INDEMIDE  MODULE-INFO COLLECT 1.2.1</string>
      </property>
     </widget>
     <widget class="QPushButton" name="test_area">
@@ -368,17 +368,33 @@ color:white</string>
          <string>                            未连接到设备</string>
         </property>
        </widget>
-       <widget class="QPushButton" name="collect_start">
+       <widget class="QWidget" name="imu_camera_box" native="true">
         <property name="geometry">
          <rect>
           <x>310</x>
           <y>5</y>
           <width>115</width>
-          <height>80</height>
+          <height>85</height>
          </rect>
         </property>
         <property name="styleSheet">
-         <string notr="true">QPushButton{
+         <string notr="true">#imu_camera_box{
+border:1 solid #FF333333;
+font:13px '微软雅黑';
+color:white
+}</string>
+        </property>
+        <widget class="QPushButton" name="collect_start">
+         <property name="geometry">
+          <rect>
+           <x>5</x>
+           <y>50</y>
+           <width>105</width>
+           <height>30</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QPushButton{
 font:15px '微软雅黑';
 background-color: #FF4D4D4D;
 border:0;
@@ -396,10 +412,45 @@ background-color:rgba(255,255,255,0.2);
 color:white;
 font:15px '微软雅黑'
 }</string>
-        </property>
-        <property name="text">
-         <string>开始采集</string>
-        </property>
+         </property>
+         <property name="text">
+          <string>开始采集</string>
+         </property>
+        </widget>
+        <widget class="QCheckBox" name="imu_data">
+         <property name="geometry">
+          <rect>
+           <x>5</x>
+           <y>5</y>
+           <width>92</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">font:15px '微软雅黑';
+color:white;</string>
+         </property>
+         <property name="text">
+          <string>IMU 数据</string>
+         </property>
+        </widget>
+        <widget class="QCheckBox" name="camera_data">
+         <property name="geometry">
+          <rect>
+           <x>5</x>
+           <y>25</y>
+           <width>110</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">font:15px '微软雅黑';
+color:white;</string>
+         </property>
+         <property name="text">
+          <string>Camera 数据</string>
+         </property>
+        </widget>
        </widget>
       </widget>
      </widget>
@@ -1426,77 +1477,9 @@ font:14px '微软雅黑'
      </property>
     </widget>
    </widget>
-   <widget class="QPushButton" name="collect_start_camera">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>370</y>
-      <width>115</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">QPushButton{
-font:15px '微软雅黑';
-background-color: #FF4D4D4D;
-border:0;
-color:white;
-}
-QPushButton::hover{
-border:0 white;
-background-color:rgba(255,255,255,0.1);
-color:white;
-font:15px '微软雅黑'
-}
-QPushButton::pressed{
-border:1px solid rgba(255,255,255,0.2);
-background-color:rgba(255,255,255,0.2);
-color:white;
-font:15px '微软雅黑'
-}</string>
-    </property>
-    <property name="text">
-     <string>相机 采集</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="imu_test">
-    <property name="geometry">
-     <rect>
-      <x>330</x>
-      <y>380</y>
-      <width>100</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">QPushButton{
-font:15px '微软雅黑';
-background-color: #FF4D4D4D;
-border:0;
-color:white;
-}
-QPushButton::hover{
-border:0 white;
-background-color:rgba(255,255,255,0.1);
-color:white;
-font:15px '微软雅黑'
-}
-QPushButton::pressed{
-border:1px solid rgba(255,255,255,0.2);
-background-color:rgba(255,255,255,0.2);
-color:white;
-font:15px '微软雅黑'
-}</string>
-    </property>
-    <property name="text">
-     <string>imu测试</string>
-    </property>
-   </widget>
    <zorder>hmd_imu_tips</zorder>
    <zorder>module_title_area</zorder>
    <zorder>main_area</zorder>
-   <zorder>collect_start_camera</zorder>
-   <zorder>imu_test</zorder>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

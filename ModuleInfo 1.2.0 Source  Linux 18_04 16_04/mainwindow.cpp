@@ -5,7 +5,7 @@
 const static int pos_min_x = 0;
 const static int pos_max_x = 450;       //控制x轴可选长度
 const static int pos_min_y = 0;
-const static int pos_max_y = 30;         //控制y轴可选长度
+const static int pos_max_y = 30;        //控制y轴可选长度
 
 QThread*     m_thread;                  //文件操作线程 -IMU
 QThread*     m_thread_camera;           //相机文件操作线程 -LEFT
@@ -121,18 +121,10 @@ void MainWindow::CameraInit(){
         //获取 |已连接| 设备的信息 IMU数据回调信息
         m_con_eq_info= imrSearchDevices(m_camera_pHandle);
         //初始化
-        //-----------------------------------------WIN------------------------------------------------------
-        //for (int i = 0; i < m_con_eq_info.devNum; ++i) {
-        //    imrConnectDevice(m_camera_pHandle, m_con_eq_info._devInfo[i]._id, 0, MainWindow::HMDDataCollect);
-        //}
-        //if (m_camera_pHandle == NULL)
-        //{
-        //    assert(m_camera_pHandle != NULL);
-        //}
-        //---------------------------------------LINUX--------------------------------------------------------
         imrConnectDevice(m_camera_pHandle, NULL, 0, MainWindow::HMDDataCollect);
+
         //初始化相机配置信息
-        CameraConfig cc;
+        CameraConfig cc = { 0 };
         cc._cb = MainWindow::HMDDataCollectCamera;
         //初始化相机
         if(imrInitCamera(m_camera_pHandle, cc)){
@@ -173,10 +165,13 @@ QList<string> imu_box;     //imu 传输容器
 QList<string> imu_cache;   //imu 缓存容器
 bool state = true;         //采集按钮状态开关
 bool collect_state = false;//数据采集   开关
+//--------------采集开关 imu | camera-----------------------------
+bool m_imu_collet = false;
+bool m_camera_collect = false;
 QMutex m_mutex;            //imu 存储锁
 //获取待采集的数据集合
 void MainWindow::HMDDataCollect(imrIMUData*data){
-    if(collect_state){
+    if(collect_state && m_imu_collet){
         //        char  imu_one[200];
         //        long long time_stamp = basetime + data->_timeStamp * 1000000;
         //        sprintf(imu_one,"%lld,%f,%f,%f,%f,%f,%f",time_stamp,
@@ -227,7 +222,7 @@ QMutex m_d_mutex;          //camera 存储锁
 imrCameraData temp_now;
 //获取待采集的相机数据集合
 void MainWindow::HMDDataCollectCamera(imrCameraData *camera_data){
-    if(collect_state){
+    if(collect_state && m_camera_collect){
         unsigned char* temp_left =  new unsigned char[camera_data->_size];
         unsigned char* temp_right =  new unsigned char[camera_data->_size];
 
@@ -268,7 +263,7 @@ bool write_end = false;
 int  now_group = 0;
 //发送回调的相机信息
 void MainWindow::showTimelimit_camera(){
-    if(collect_state){
+    if(collect_state && m_camera_collect){
         if(group > now_group){
             emit sig_camera_data_post_left(camera_box_left.value(now_group));
 
@@ -283,22 +278,25 @@ void MainWindow::showTimelimit_camera(){
         }
     }else{
         if(group != now_group){
-            //emit sig_camera_data_post_left(camera_box_left.value(now_group));
-            //emit sig_camera_imu_post_left(camera_box_left.value(now_group)[0]._timeStamp);
-            //emit sig_camera_data_post_right(camera_box_right.value(now_group));
-            //emit sig_camera_imu_post_right(camera_box_right.value(now_group)[0]._timeStamp);
-            //++now_group;
         }
         else if(group == now_group && group >0){
+            if(m_imu_collet && m_camera_collect){
+                m_hmd_about->setCollectState(state,"");
+                m_camera_data->setCollectStateCamera(state,"");
+                m_camera_data_right->setCollectStateCamera(state,"");
 
-            m_hmd_about->setCollectState(state,"");
-            m_camera_data->setCollectStateCamera(state,"");
-            m_camera_data_right->setCollectStateCamera(state,"");
+                if(imu_box.size() > 0)
+                    imu_box.clear();
+                now_group = 0;
+                group = 0;
+            }
+            if(m_camera_collect){
+                m_camera_data->setCollectStateCamera(state,"");
+                m_camera_data_right->setCollectStateCamera(state,"");
 
-            if(imu_box.size() > 0)
-                imu_box.clear();
-            now_group = 0;
-            group = 0;
+                now_group = 0;
+                group = 0;
+            }
         }
     }
 }
@@ -308,7 +306,7 @@ void MainWindow::slot_save_isok(){
 //发送imu数据
 void MainWindow::showTimelimit_imu(){
     //--------------------缓存版本---------------------
-    if(collect_state){
+    if(collect_state && m_imu_collet){
         if(imu_box.size() == 2000)
             emit sig_imu_data_post(imu_box);
         if(imu_box.size() >0)
@@ -495,24 +493,37 @@ void MainWindow::on_collect_start_clicked()
             m_hmd_about->setFileSavePath(m_file_save_path);
             m_camera_data->setFileSavePath(m_file_save_path);
             m_camera_data_right->setFileSavePath(m_file_save_path);
-        }else{
-
         }
-        m_camera_data->OpenFile();
-        m_camera_data_right->OpenFile();
-
-        m_hmd_about->setCollectState(state,time);
-        m_camera_data->setCollectStateCamera(state,time);
-        m_camera_data_right->setCollectStateCamera(state,time);
+        if(m_imu_collet){
+            m_hmd_about->setCollectState(state,time);
+        }
+        if(m_camera_collect){
+            m_camera_data->OpenFile();
+            m_camera_data_right->OpenFile();
+            m_camera_data->setCollectStateCamera(state,time);
+            m_camera_data_right->setCollectStateCamera(state,time);
+        }
         state = false;
+        ui->imu_data->setEnabled(false);
+        ui->camera_data->setEnabled(false);
     }else{
         state = true;
         collect_state = false;
         m_work_type = -1;
         ui->collect_start->setStyleSheet(m_common + m_hover + m_pressed);
         ui->collect_start->setText(QString::fromLocal8Bit("开始采集"));
-        m_camera_data->getNowDataNum(now_group);
-        m_camera_data_right->getNowDataNum(now_group);
+
+        if(m_camera_collect){
+            m_camera_data->getNowDataNum(now_group);
+            m_camera_data_right->getNowDataNum(now_group);
+        }
+        if(m_imu_collet){
+            m_hmd_about->setCollectState(state,"");
+            if(imu_box.size() > 0)
+                imu_box.clear();
+        }
+        ui->imu_data->setEnabled(true);
+        ui->camera_data->setEnabled(true);
     }
 }
 //设置 路径并自动适用
@@ -614,4 +625,20 @@ void MainWindow::on_test_area_clicked()
         AnimationControl(ui->hmd_imu_tips,300,450,0,150,0,300,290,3);
 
     }
+}
+//IMU采集开关
+void MainWindow::on_imu_data_stateChanged(int state)
+{
+    if(state == 2)
+        m_imu_collet = true;
+    else
+        m_imu_collet = false;
+}
+//相机采集开关
+void MainWindow::on_camera_data_stateChanged(int state)
+{
+    if(state == 2)
+        m_camera_collect = true;
+    else
+        m_camera_collect = false;
 }
